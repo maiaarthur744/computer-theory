@@ -110,7 +110,7 @@ class AppLimpezaFachada:
         resultados_texto += f"[Vizinho Mais Próximo]\nCusto: {custo_vmp:.2f}\nOperações: {op_vmp}\nTempo: {tempo_vmp:.6f}s\n\n"
         self.btn_ver_vmp.config(state=tk.NORMAL)
 
-        if num_janelas <= 90000:
+        if num_janelas <= 15:
             self.lbl_progresso.config(text="Força Bruta...")
             self.root.update()
 

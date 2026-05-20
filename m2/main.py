@@ -61,10 +61,9 @@ def forca_bruta(janelas: list[tuple[int, int]], callback=None):
     menor_custo = float('inf')
     operacoes = 0
 
-    permutacoes = list(itertools.permutations(janelas_limpar))
-    total = len(permutacoes)
-
-    for idx, permutacao in enumerate(permutacoes):
+    total = math.factorial(len(janelas_limpar))
+    
+    for idx, permutacao in enumerate(itertools.permutations(janelas_limpar)):
         operacoes += 1
         rota_atual = [base] + list(permutacao) + [base]
         custo_atual = calcular_custo_rota(rota_atual)
