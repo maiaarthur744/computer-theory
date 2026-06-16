@@ -1,25 +1,26 @@
 import time
 import tkinter as tk
-from tkinter import messagebox, ttk
+from tkinter import messagebox
 
-from main import gerar_fachada_aleatoria, forca_bruta, vizinho_mais_proximo
+from main import gerar_fachada_aleatoria, forca_bruta, vizinho_mais_proximo, otimizacao_2opt
 
 class AppLimpezaFachada:
     def __init__(self, root):
         self.root = root
         self.root.title("Otimização de Limpeza de Fachadas - Green Computing")
-        self.root.geometry("900x700")
+        self.root.geometry("950x700")
 
         self.fachada = []
         self.rota_fb = None
         self.rota_vmp = None
+        self.rota_2opt = None
         self.linhas = 0
         self.colunas = 0
 
         self.setup_ui()
 
     def setup_ui(self):
-        controle_frame = tk.Frame(self.root, padx=10, pady=10, width=300)
+        controle_frame = tk.Frame(self.root, padx=10, pady=10, width=320)
         controle_frame.pack(side=tk.LEFT, fill=tk.Y)
 
         tk.Label(controle_frame, text="Configurações da Grade", font=("Arial", 12, "bold")).pack(pady=5)
@@ -46,20 +47,16 @@ class AppLimpezaFachada:
 
         tk.Button(controle_frame, text="Gerar e Calcular Rotas", bg="#4CAF50", fg="white", font=("Arial", 10, "bold"), command=self.executar_algoritmos).pack(pady=15, fill=tk.X)
 
-        tk.Label(controle_frame, text="Progresso", font=("Arial", 10, "bold")).pack(pady=5)
-        self.lbl_progresso = tk.Label(controle_frame, text="", font=("Arial", 8), fg="#666")
-        self.lbl_progresso.pack(fill=tk.X, pady=2)
+        tk.Label(controle_frame, text="Visualização das Rotas", font=("Arial", 12, "bold")).pack(pady=5)
 
-        self.progress_bar = ttk.Progressbar(controle_frame, length=200, mode='determinate')
-        self.progress_bar.pack(fill=tk.X, pady=5)
-
-        tk.Label(controle_frame, text="Visualização", font=("Arial", 12, "bold")).pack(pady=5)
-
-        self.btn_ver_fb = tk.Button(controle_frame, text="Mostrar Rota: Força Bruta", state=tk.DISABLED, command=lambda: self.desenhar_rota(self.rota_fb, "red"))
-        self.btn_ver_fb.pack(pady=5, fill=tk.X)
-
-        self.btn_ver_vmp = tk.Button(controle_frame, text="Mostrar Rota: Vizinho Próximo", state=tk.DISABLED, command=lambda: self.desenhar_rota(self.rota_vmp, "blue"))
+        self.btn_ver_vmp = tk.Button(controle_frame, text="1. Vizinho Mais Próximo", state=tk.DISABLED, command=lambda: self.desenhar_rota(self.rota_vmp, "blue"))
         self.btn_ver_vmp.pack(pady=5, fill=tk.X)
+
+        self.btn_ver_2opt = tk.Button(controle_frame, text="2. Otimização 2-Opt", bg="#d4edda", state=tk.DISABLED, command=lambda: self.desenhar_rota(self.rota_2opt, "green"))
+        self.btn_ver_2opt.pack(pady=5, fill=tk.X)
+
+        self.btn_ver_fb = tk.Button(controle_frame, text="Força Bruta (Apenas < 10 janelas)", state=tk.DISABLED, command=lambda: self.desenhar_rota(self.rota_fb, "red"))
+        self.btn_ver_fb.pack(pady=5, fill=tk.X)
 
         self.lbl_resultados = tk.Label(controle_frame, text="", justify=tk.LEFT, fg="#333", font=("Arial", 9))
         self.lbl_resultados.pack(pady=15, fill=tk.X)
@@ -69,12 +66,6 @@ class AppLimpezaFachada:
 
         self.canvas = tk.Canvas(canvas_frame, bg="white", relief=tk.SUNKEN, borderwidth=2)
         self.canvas.pack(fill=tk.BOTH, expand=True)
-
-    def atualizar_progresso(self, progresso, total, algoritmo):
-        percentual = (progresso / total) * 100
-        self.progress_bar['value'] = percentual
-        self.lbl_progresso.config(text=f"{algoritmo}: {progresso}/{total} ({percentual:.1f}%)")
-        self.root.update()
 
     def executar_algoritmos(self):
         try:
@@ -92,45 +83,37 @@ class AppLimpezaFachada:
 
         self.fachada = gerar_fachada_aleatoria(self.linhas, self.colunas, base_x, base_y)
         num_janelas = len(self.fachada)
-
-        resultados_texto = f"Total Janelas Sujas: {num_janelas}\n\n"
-
-        self.progress_bar['value'] = 0
-        self.lbl_progresso.config(text="")
-
-        self.lbl_progresso.config(text="Vizinho Mais Próximo...")
-        self.root.update()
+        resultados_texto = f"Total de Janelas para Limpar: {num_janelas}\n"
+        resultados_texto += "-"*40 + "\n"
         inicio = time.time()
-        self.rota_vmp, custo_vmp, op_vmp = vizinho_mais_proximo(
-            self.fachada,
-            callback=lambda p, t: self.atualizar_progresso(p, t, "Vizinho Próximo")
-        )
+        self.rota_vmp, custo_vmp, op_vmp = vizinho_mais_proximo(self.fachada)
         tempo_vmp = time.time() - inicio
-
-        resultados_texto += f"[Vizinho Mais Próximo]\nCusto: {custo_vmp:.2f}\nOperações: {op_vmp}\nTempo: {tempo_vmp:.6f}s\n\n"
+        resultados_texto += f"[Vizinho Mais Próximo]\nCusto: {custo_vmp:.2f}  |  Ops: {op_vmp}  |  {tempo_vmp:.4f}s\n\n"
         self.btn_ver_vmp.config(state=tk.NORMAL)
 
-        if num_janelas <= 15:
-            self.lbl_progresso.config(text="Força Bruta...")
+        inicio = time.time()
+        self.rota_2opt, custo_2opt, op_2opt = otimizacao_2opt(self.rota_vmp)
+        tempo_2opt = time.time() - inicio
+        resultados_texto += f"[Otimização 2-Opt]\nCusto: {custo_2opt:.2f}  |  Ops Extras: {op_2opt}  |  {tempo_2opt:.4f}s\n\n"
+        self.btn_ver_2opt.config(state=tk.NORMAL)
+        
+        if num_janelas <= 12:
+            self.root.config(cursor="watch") 
             self.root.update()
 
             inicio = time.time()
-            self.rota_fb, custo_fb, op_fb = forca_bruta(
-                self.fachada,
-                callback=lambda p, t: self.atualizar_progresso(p, t, "Força Bruta")
-            )
+            self.rota_fb, custo_fb, op_fb = forca_bruta(self.fachada)
             tempo_fb = time.time() - inicio
 
-            resultados_texto += f"[Força Bruta O(N!)]\nCusto: {custo_fb:.2f}\nOperações: {op_fb}\nTempo: {tempo_fb:.6f}s\n"
+            resultados_texto += f"[Força Bruta O(N!)]\nCusto: {custo_fb:.2f}  |  Ops: {op_fb}  |  {tempo_fb:.4f}s\n"
             self.btn_ver_fb.config(state=tk.NORMAL)
+            self.root.config(cursor="")
         else:
             self.rota_fb = None
-            resultados_texto += "[Força Bruta O(N!)]\nIgnorado! Muitas janelas (>9).\nTempo excessivo de CPU."
+            resultados_texto += "[Força Bruta]\nIgnorado (Mais de 9 janelas).\n"
             self.btn_ver_fb.config(state=tk.DISABLED)
 
         self.lbl_resultados.config(text=resultados_texto)
-        self.progress_bar['value'] = 100
-        self.lbl_progresso.config(text="✓ Concluído!")
         self.desenhar_grade()
 
     def desenhar_grade(self):

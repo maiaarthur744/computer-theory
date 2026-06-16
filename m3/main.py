@@ -49,10 +49,9 @@ def calcular_custo_rota(rota: list[tuple[int, int]]) -> float:
     return custo
 
 
-def forca_bruta(janelas: list[tuple[int, int]], callback=None):
+def forca_bruta(janelas: list[tuple[int, int]]):
     """
     Força Bruta O(N!): Testa todas as permutações e retorna à base.
-    callback: função(progresso, total) chamada a cada iteração para mostrar progresso
     """
     base = janelas[0]
     janelas_limpar = janelas[1:]
@@ -61,9 +60,7 @@ def forca_bruta(janelas: list[tuple[int, int]], callback=None):
     menor_custo = float('inf')
     operacoes = 0
 
-    total = math.factorial(len(janelas_limpar))
-    
-    for idx, permutacao in enumerate(itertools.permutations(janelas_limpar)):
+    for permutacao in itertools.permutations(janelas_limpar):
         operacoes += 1
         rota_atual = [base] + list(permutacao) + [base]
         custo_atual = calcular_custo_rota(rota_atual)
@@ -72,22 +69,19 @@ def forca_bruta(janelas: list[tuple[int, int]], callback=None):
             menor_custo = custo_atual
             melhor_rota = rota_atual
 
-        if callback and idx % max(1, total // 100) == 0:
-            callback(idx + 1, total)
-
     return melhor_rota, menor_custo, operacoes
 
 
-def vizinho_mais_proximo(janelas: list[tuple[int, int]], callback=None):
+def vizinho_mais_proximo(janelas: list[tuple[int, int]]):
     """
     Vizinho Mais Próximo O(N^2): Escolhe a mais próxima e no fim retorna à base.
-    callback: função(progresso, total) chamada a cada passo
+
     """
     base = janelas[0]
     nao_visitadas = set(janelas[1:])
     rota_atual = [base]
     operacoes = 0
-    total = len(janelas)
+
 
     while nao_visitadas:
         janela_atual = rota_atual[-1]
@@ -98,10 +92,36 @@ def vizinho_mais_proximo(janelas: list[tuple[int, int]], callback=None):
         rota_atual.append(proxima_janela)
         nao_visitadas.remove(proxima_janela)
 
-        if callback:
-            callback(len(rota_atual) - 1, total)
-
     rota_atual.append(base)
     custo_total = calcular_custo_rota(rota_atual)
 
     return rota_atual, custo_total, operacoes
+
+def otimizacao_2opt(rota_inicial: list[tuple[int, int]]):
+    """
+    Algoritmo de otimização local 2-Opt O(N^2).
+    Desfaz cruzamentos invertendo segmentos da rota gerada pelo Vizinho Mais Próximo.
+    """
+    melhor_rota = rota_inicial[:]
+    menor_custo = calcular_custo_rota(melhor_rota)
+    operacoes = 0
+    melhoria = True
+    
+    while melhoria:
+        melhoria = False
+        for i in range(1, len(melhor_rota) - 2):
+            for j in range(i + 1, len(melhor_rota) - 1):
+                operacoes += 1
+
+                nova_rota = melhor_rota[:i] + melhor_rota[i:j+1][::-1] + melhor_rota[j+1:]
+                custo_nova_rota = calcular_custo_rota(nova_rota)
+
+                if custo_nova_rota < menor_custo - 0.0001: 
+                    menor_custo = custo_nova_rota
+                    melhor_rota = nova_rota
+                    melhoria = True
+                    break
+            if melhoria:
+                break
+                
+    return melhor_rota, menor_custo, operacoes
