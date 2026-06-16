@@ -12,5 +12,4 @@ Este projeto foi desenvolvido no trabalho **M3** da disciplina de **Teoria da Co
 ## Como Executar
 1. Crie o ambiente virtual: `python -m venv venv`
 2. Ative o ambiente virtual: `source venv/bin/activate`
-3. Instale as dependências: `pip install -r requirements.txt`
-4. Execute o programa: `python main.py`
+3. Execute o programa: `python gui.py`

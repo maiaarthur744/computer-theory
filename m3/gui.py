@@ -1,6 +1,7 @@
 import time
+import math
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, ttk
 
 from main import gerar_fachada_aleatoria, forca_bruta, vizinho_mais_proximo, otimizacao_2opt
 
@@ -8,7 +9,7 @@ class AppLimpezaFachada:
     def __init__(self, root):
         self.root = root
         self.root.title("Otimização de Limpeza de Fachadas - Green Computing")
-        self.root.geometry("950x700")
+        self.root.geometry("950x750")
 
         self.fachada = []
         self.rota_fb = None
@@ -47,7 +48,16 @@ class AppLimpezaFachada:
 
         tk.Button(controle_frame, text="Gerar e Calcular Rotas", bg="#4CAF50", fg="white", font=("Arial", 10, "bold"), command=self.executar_algoritmos).pack(pady=15, fill=tk.X)
 
-        tk.Label(controle_frame, text="Visualização das Rotas", font=("Arial", 12, "bold")).pack(pady=5)
+        self.frame_progresso = tk.Frame(controle_frame)
+        self.frame_progresso.pack(fill=tk.X, pady=5)
+        
+        self.lbl_progresso = tk.Label(self.frame_progresso, text="Aguardando execução...", font=("Arial", 9))
+        self.lbl_progresso.pack()
+        
+        self.barra_progresso = ttk.Progressbar(self.frame_progresso, orient="horizontal", mode="determinate", length=200)
+        self.barra_progresso.pack(fill=tk.X, pady=2)
+
+        tk.Label(controle_frame, text="Visualização das Rotas", font=("Arial", 12, "bold")).pack(pady=10)
 
         self.btn_ver_vmp = tk.Button(controle_frame, text="1. Vizinho Mais Próximo", state=tk.DISABLED, command=lambda: self.desenhar_rota(self.rota_vmp, "blue"))
         self.btn_ver_vmp.pack(pady=5, fill=tk.X)
@@ -67,6 +77,13 @@ class AppLimpezaFachada:
         self.canvas = tk.Canvas(canvas_frame, bg="white", relief=tk.SUNKEN, borderwidth=2)
         self.canvas.pack(fill=tk.BOTH, expand=True)
 
+    def atualizar_progresso(self, prefixo, atual, total):
+        """Atualiza a barra de progresso e força o Tkinter a redesenhar a tela."""
+        percentual = (atual / total) * 100
+        self.barra_progresso["value"] = percentual
+        self.lbl_progresso.config(text=f"{prefixo}: {percentual:.1f}%")
+        self.root.update()
+
     def executar_algoritmos(self):
         try:
             self.linhas = int(self.ent_linhas.get())
@@ -85,24 +102,38 @@ class AppLimpezaFachada:
         num_janelas = len(self.fachada)
         resultados_texto = f"Total de Janelas para Limpar: {num_janelas}\n"
         resultados_texto += "-"*40 + "\n"
+        
+        self.btn_ver_vmp.config(state=tk.DISABLED)
+        self.btn_ver_2opt.config(state=tk.DISABLED)
+        self.btn_ver_fb.config(state=tk.DISABLED)
+        self.desenhar_grade()
         inicio = time.time()
-        self.rota_vmp, custo_vmp, op_vmp = vizinho_mais_proximo(self.fachada)
+        self.rota_vmp, custo_vmp, op_vmp = vizinho_mais_proximo(self.fachada,callback=lambda a, t: self.atualizar_progresso("Vizinho", a, t))
         tempo_vmp = time.time() - inicio
         resultados_texto += f"[Vizinho Mais Próximo]\nCusto: {custo_vmp:.2f}  |  Ops: {op_vmp}  |  {tempo_vmp:.4f}s\n\n"
         self.btn_ver_vmp.config(state=tk.NORMAL)
 
         inicio = time.time()
-        self.rota_2opt, custo_2opt, op_2opt = otimizacao_2opt(self.rota_vmp)
+        self.rota_2opt, custo_2opt, op_2opt = otimizacao_2opt(self.rota_vmp,callback=lambda a, t: self.atualizar_progresso("2-Opt", a, t))
         tempo_2opt = time.time() - inicio
         resultados_texto += f"[Otimização 2-Opt]\nCusto: {custo_2opt:.2f}  |  Ops Extras: {op_2opt}  |  {tempo_2opt:.4f}s\n\n"
         self.btn_ver_2opt.config(state=tk.NORMAL)
-        
-        if num_janelas <= 12:
-            self.root.config(cursor="watch") 
-            self.root.update()
 
+        executar_fb = True
+        if num_janelas > 10:
+            qtd_rotas = math.factorial(num_janelas - 1)
+            resposta = messagebox.askyesno("Aviso de Desempenho", 
+                                           f"Atenção!\nVocê tem {num_janelas} janelas sujas.\n\n"
+                                           f"A Força Bruta precisará testar {qtd_rotas:,} rotas diferentes.\n"
+                                           f"Isso pode demorar bastante tempo consumindo muita CPU.\n\n"
+                                           f"Deseja executar a Força Bruta mesmo assim?")
+            if not resposta:
+                executar_fb = False
+
+        if executar_fb:
+            self.root.config(cursor="watch") 
             inicio = time.time()
-            self.rota_fb, custo_fb, op_fb = forca_bruta(self.fachada)
+            self.rota_fb, custo_fb, op_fb = forca_bruta(self.fachada, callback=lambda a, t: self.atualizar_progresso("Força Bruta", a, t))
             tempo_fb = time.time() - inicio
 
             resultados_texto += f"[Força Bruta O(N!)]\nCusto: {custo_fb:.2f}  |  Ops: {op_fb}  |  {tempo_fb:.4f}s\n"
@@ -110,11 +141,11 @@ class AppLimpezaFachada:
             self.root.config(cursor="")
         else:
             self.rota_fb = None
-            resultados_texto += "[Força Bruta]\nIgnorado (Mais de 9 janelas).\n"
-            self.btn_ver_fb.config(state=tk.DISABLED)
+            resultados_texto += "[Força Bruta]\nIgnorado pelo usuário.\n"
 
+        self.lbl_progresso.config(text="Cálculos concluídos!")
+        self.barra_progresso["value"] = 100
         self.lbl_resultados.config(text=resultados_texto)
-        self.desenhar_grade()
 
     def desenhar_grade(self):
         self.canvas.delete("all")
