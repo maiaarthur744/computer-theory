@@ -22,8 +22,8 @@ def gerar_fachada_aleatoria(linhas: int, colunas: int, base_x: int, base_y: int,
 def calcular_custo(janela1: tuple[int, int], janela2: tuple[int, int]) -> float:
     """
     Calcula o custo com:
-    - Descidas (y2 > y1): 0.75x (menos custoso - aproveita gravidade)
-    - Subidas (y2 < y1): 1.5x (mais custoso - gasto energético)
+    - Descidas (y2 > y1): 0.90x (menos custoso - aproveita gravidade)
+    - Subidas (y2 < y1): 1.17x (mais custoso - gasto energético)
     - Horizontal: 1.0x (custo normal)
     """
     x1, y1 = janela1
@@ -32,9 +32,9 @@ def calcular_custo(janela1: tuple[int, int], janela2: tuple[int, int]) -> float:
     distancia = math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
 
     if y2 > y1:
-        esforco_vertical = 0.75
+        esforco_vertical = 0.90
     elif y2 < y1:
-        esforco_vertical = 1.5
+        esforco_vertical = 1.17
     else:
         esforco_vertical = 1.0
 
@@ -72,14 +72,14 @@ def forca_bruta(janelas: list[tuple[int, int]], callback=None):
             melhor_rota = rota_atual
         if callback and operacoes % passo_callback == 0:
             callback(operacoes, total_rotas) 
-    if callback: callback(total_rotas, total_rotas)
+    if callback:
+        callback(total_rotas, total_rotas)
 
     return melhor_rota, menor_custo, operacoes
 
 def vizinho_mais_proximo(janelas: list[tuple[int, int]], callback=None):
     """
     Vizinho Mais Próximo O(N^2): Escolhe a mais próxima e no fim retorna à base.
-
     """
     base = janelas[0]
     nao_visitadas = set(janelas[1:])
@@ -101,7 +101,8 @@ def vizinho_mais_proximo(janelas: list[tuple[int, int]], callback=None):
 
     rota_atual.append(base)
     custo_total = calcular_custo_rota(rota_atual)
-    if callback: callback(total_janelas, total_janelas)
+    if callback:
+        callback(total_janelas, total_janelas)
 
     return rota_atual, custo_total, operacoes
 
@@ -132,6 +133,7 @@ def otimizacao_2opt(rota_inicial: list[tuple[int, int]], callback=None):
             if melhoria:
                 break
                 
-    if callback: callback(1, 1)
+    if callback:
+        callback(1, 1)
 
     return melhor_rota, menor_custo, operacoes

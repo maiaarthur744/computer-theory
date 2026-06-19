@@ -149,13 +149,16 @@ class AppLimpezaFachada:
 
     def desenhar_grade(self):
         self.canvas.delete("all")
-        if self.linhas == 0 or self.colunas == 0: return
+        if self.linhas == 0 or self.colunas == 0:
+            return
 
         largura_canvas = self.canvas.winfo_width()
         altura_canvas = self.canvas.winfo_height()
 
-        if largura_canvas <= 1: largura_canvas = 550
-        if altura_canvas <= 1: altura_canvas = 600
+        if largura_canvas <= 1:
+            largura_canvas = 550
+        if altura_canvas <= 1:
+            altura_canvas = 600
 
         self.cell_w = min(largura_canvas / self.colunas, altura_canvas / self.linhas)
         self.cell_h = self.cell_w
@@ -184,7 +187,8 @@ class AppLimpezaFachada:
 
     def desenhar_rota(self, rota, cor):
         self.desenhar_grade()
-        if not rota: return
+        if not rota:
+            return
 
         for i in range(len(rota) - 1):
             x1, y1 = rota[i]
